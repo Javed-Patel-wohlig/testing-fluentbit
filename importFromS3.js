@@ -1,7 +1,7 @@
 const AWS = require("aws-sdk");
 const fs = require("fs");
-const path = require("path");
-require("dotenv").config();
+const path = require('path');
+require('dotenv').config();
 
 // Configure AWS credentials and region
 AWS.config.update({
@@ -15,37 +15,38 @@ AWS.config.update({
 // Create an S3 object
 const s3 = new AWS.S3();
 
-async function downloadS3Files(bucketName) {
+async function syncS3BucketToLocal(bucketName) {
   try {
-    // List all objects in the specified bucket
-    const objects = await s3.listObjectsV2({ Bucket: bucketName }).promise();
-
     // Create the root folder if it doesn't exist
-    const rootFolder = path.join(__dirname, "s3files");
+    const rootFolder = path.join(__dirname, 's3files');
     if (!fs.existsSync(rootFolder)) {
       fs.mkdirSync(rootFolder);
     }
 
-    // Iterate through each object in the bucket
-    for (const object of objects.Contents) {
+    // List objects in the bucket
+    const objects = await s3.listObjectsV2({ Bucket: bucketName }).promise();
+
+    // Download each object
+    await Promise.all(objects.Contents.map(async (object) => {
       const key = object.Key;
-
-      // Download the object from S3
-      const params = { Bucket: bucketName, Key: key };
-      const { Body } = await s3.getObject(params).promise();
-
-      // Determine the file path to save
       const filePath = path.join(rootFolder, key);
+      const fileStream = fs.createWriteStream(filePath);
 
-      // Save the object to the local file system
-      fs.writeFileSync(filePath, Body);
-      console.log(`Downloaded ${key} to ${filePath}`);
-    }
+      const params = {
+        Bucket: bucketName,
+        Key: key
+      };
 
-    console.log("All files downloaded successfully.");
+      // Stream the object from S3 to the local file
+      await s3.getObject(params).createReadStream().pipe(fileStream);
+
+      console.log(`Downloaded: ${key}`);
+    }));
+
+    console.log('S3 bucket synced to local directory successfully.');
   } catch (error) {
-    console.error("Error:", error);
+    console.error('Error:', error);
   }
 }
 
-downloadS3Files(process.env.AWS_S3_BUCKET);
+syncS3BucketToLocal(process.env.AWS_S3_BUCKET);
