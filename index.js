@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
-const port = 3000
+require('dotenv').config()
+const port = process.env.PORT
 
 app.use("/firstApi", (req, res) => {
   console.log("firstApi called")
