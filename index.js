@@ -27,14 +27,13 @@ app.use("/fourthApi", (req, res) => {
 
 app.post("/downloadLog",async (req, res) => {
   try {
-    const filePath = req.body.filePath
-    const result = await importFromS3.downloadS3File(filePath)
+    const result = await importFromS3.downloadS3FilesByDate(req.body.date)
     res.send(result);
   } catch (error) {
     console.error(error)
     res.send(error.message)
   }
-  // const bucket = req.body.bucket
+
 });
 
 app.listen(port, () => console.log("listening on ports", port));
