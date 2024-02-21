@@ -2,6 +2,8 @@ const express = require("express");
 const app = express();
 require('dotenv').config()
 const port = process.env.PORT
+const importFromS3 = require('./importFromS3')
+app.use(express.json());
 
 app.use("/firstApi", (req, res) => {
   console.log("firstApi called")
@@ -21,6 +23,18 @@ app.use("/thirdApi", (req, res) => {
 app.use("/fourthApi", (req, res) => {
   console.log("fourthApi called")
   res.send("fourthApi");
+});
+
+app.post("/downloadLog",async (req, res) => {
+  try {
+    const filePath = req.body.filePath
+    const result = await importFromS3.downloadS3File(filePath)
+    res.send(result);
+  } catch (error) {
+    console.error(error)
+    res.send(error.message)
+  }
+  // const bucket = req.body.bucket
 });
 
 app.listen(port, () => console.log("listening on ports", port));

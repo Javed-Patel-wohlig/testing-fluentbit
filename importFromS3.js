@@ -1,7 +1,8 @@
 const AWS = require("aws-sdk");
 const fs = require("fs");
-const path = require('path');
-require('dotenv').config();
+const path = require("path");
+require("dotenv").config();
+const unzip = require("./unzip")
 
 // Configure AWS credentials and region
 AWS.config.update({
@@ -14,39 +15,35 @@ AWS.config.update({
 
 // Create an S3 object
 const s3 = new AWS.S3();
-
-async function syncS3BucketToLocal(bucketName) {
+async function downloadS3File(fullPath) {
   try {
+    // Extract the file name from the full path
+    const fileName = path.basename(fullPath);
+    console.log("fileName:",fileName);
     // Create the root folder if it doesn't exist
-    const rootFolder = path.join(__dirname, 's3files');
+    const rootFolder = path.join(__dirname, "s3files");
     if (!fs.existsSync(rootFolder)) {
       fs.mkdirSync(rootFolder);
     }
 
-    // List objects in the bucket
-    const objects = await s3.listObjectsV2({ Bucket: bucketName }).promise();
+    // Determine the local file path
+    const localFilePath = path.join(rootFolder, fileName);
 
-    // Download each object
-    await Promise.all(objects.Contents.map(async (object) => {
-      const key = object.Key;
-      const filePath = path.join(rootFolder, key);
-      const fileStream = fs.createWriteStream(filePath);
+    // Download the file from S3 to the local directory
+    const fileData = await s3.getObject({ Bucket: process.env.AWS_S3_BUCKET, Key: fullPath }).promise();
 
-      const params = {
-        Bucket: bucketName,
-        Key: key
-      };
+    // Save the file to the local directory
+    fs.writeFileSync(localFilePath, fileData.Body);
+    unzip.decompressGzipFile(localFilePath, __dirname+"/logs/data.txt")
 
-      // Stream the object from S3 to the local file
-      await s3.getObject(params).createReadStream().pipe(fileStream);
-
-      console.log(`Downloaded: ${key}`);
-    }));
-
-    console.log('S3 bucket synced to local directory successfully.');
+    console.log(`File '${fullPath}' downloaded to '${localFilePath}' successfully.`);
+    return { success: true, message: `File '${fullPath}' downloaded successfully.` };
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
+    return { success: false, message: `Error downloading file '${fullPath}'.` };
   }
 }
 
-syncS3BucketToLocal(process.env.AWS_S3_BUCKET);
+module.exports = {
+  downloadS3File,
+};
