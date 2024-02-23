@@ -52,8 +52,8 @@ async function downloadS3File(fullPath) {
       .promise();
 
     fs.writeFileSync(localFilePath, fileData.Body);
-    unzip.decompressGzipFile(localFilePath, __dirname + "/logs/" + fileName);
-
+    await unzip.decompressGzipFile(localFilePath, __dirname + "/logs/" + fileName);
+    fs.unlinkSync(localFilePath);
     console.log(
       `File '${fullPath}' downloaded to '${localFilePath}' successfully.`
     );
