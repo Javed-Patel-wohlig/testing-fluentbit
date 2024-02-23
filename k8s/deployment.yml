@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluentbit-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fluentbit-test
+  template:
+    metadata:
+      labels:
+        app: fluentbit-test
+    spec:
+      containers:
+        - name: fluentbit-test
+          image: javedpatel007/fluentbit-test-v1
+          ports:
+            - containerPort: 3001
